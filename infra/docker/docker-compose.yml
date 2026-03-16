@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------
+  # Database Service (Container 3)
+  # ----------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    env_file:
+      - .env  # Injects our secure variables securely
+    ports:
+      - "5432:5432" # Exposing to host so you can inspect it via DBeaver/pgAdmin
+    networks:
+      - backend-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql # Optional seed script
+
+# ----------------------------------------
+# Orchestration Elements
+# ----------------------------------------
+networks:
+  backend-network:
+    driver: bridge
+    name: ecommerce-backend-network # Private network for backend + DB
+
+volumes:
+  postgres_data:
+    name: ecommerce-postgres-data # Persistent storage

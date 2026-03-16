@@ -1,0 +1,44 @@
+services:
+  # ----------------------------------------
+  # Backend API (Container 2)
+  # ----------------------------------------
+  backend:
+    build: 
+      context: ../../apps/backend  # Where to find the Dockerfile
+    container_name: ecommerce-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # THE MAGIC: We change 'localhost' to the exact name of the database container!
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+    networks:
+      - backend-network
+    depends_on:
+      - postgres # Don't start the API until the DB is running
+
+  # ----------------------------------------
+  # Database Service (Container 3)
+  # ----------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    networks:
+      - backend-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
