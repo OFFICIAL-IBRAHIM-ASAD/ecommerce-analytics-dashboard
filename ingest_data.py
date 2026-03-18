@@ -13,7 +13,6 @@ DB_CONFIG = {
 
 fake = Faker()
 
-# Predefined realistic products
 REALISTIC_PRODUCTS = {
     'Electronics': ['Mapple Phone', 'Mechanical Keyboard', '4K Monitor', 'Gaming Mouse', 'Smartwatch'],
     'Clothing': ['Cotton T-Shirt', 'Denim Jeans', 'Leather Jacket', 'Running Shoes', 'Winter Beanie'],
@@ -21,6 +20,44 @@ REALISTIC_PRODUCTS = {
     'Books': ['Introduction to Algorithms (CLRS)', 'Theory of Automata', 'The Pragmatic Programmer', 'Data Analytics for Beginners', '1984'],
     'Sports': ['Yoga Mat', 'Dumbbell Set', 'Tennis Racket', 'Basketball', 'Resistance Bands']
 }
+
+def setup_database(cur):
+    """Creates the necessary tables if they don't exist in the new Docker container."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+            product_id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            category VARCHAR(100),
+            price NUMERIC(10, 2) NOT NULL,
+            stock_quantity INT DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS customers (
+            customer_id SERIAL PRIMARY KEY,
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            email VARCHAR(255) UNIQUE,
+            city VARCHAR(100),
+            country VARCHAR(100)
+        );
+
+        CREATE TABLE IF NOT EXISTS orders (
+            order_id SERIAL PRIMARY KEY,
+            customer_id INT REFERENCES customers(customer_id),
+            total_amount NUMERIC(10, 2) DEFAULT 0,
+            status VARCHAR(50),
+            order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS order_items (
+            order_item_id SERIAL PRIMARY KEY,
+            order_id INT REFERENCES orders(order_id),
+            product_id INT REFERENCES products(product_id),
+            quantity INT NOT NULL,
+            unit_price NUMERIC(10, 2) NOT NULL
+        );
+    """)
+    print("Database schema verified/created.")
 
 def populate_data():
     conn = None
@@ -30,11 +67,16 @@ def populate_data():
         cur = conn.cursor()
         print("Connected to PostgreSQL successfully!")
 
-        # Wipe out the old random word data
+        # 1. Build the tables first
+        setup_database(cur)
+
+        # 2. Wipe out any old data (useful if you run this script multiple times)
         cur.execute("TRUNCATE TABLE products CASCADE;")
+        cur.execute("TRUNCATE TABLE customers CASCADE;")
+        cur.execute("TRUNCATE TABLE orders CASCADE;")
         print("Cleared old database records...")
 
-        # 1. Generate Products
+        # 3. Generate Products
         product_ids = []
         categories = list(REALISTIC_PRODUCTS.keys())
         
@@ -48,7 +90,7 @@ def populate_data():
             )
             product_ids.append(cur.fetchone()[0])
 
-        # 2. Generate Customers
+        # 4. Generate Customers
         customer_ids = []
         for _ in range(50):
             cur.execute(
@@ -57,7 +99,7 @@ def populate_data():
             )
             customer_ids.append(cur.fetchone()[0])
 
-        # 3. Generate Orders & Order Items
+        # 5. Generate Orders & Order Items
         for _ in range(100):
             cust_id = random.choice(customer_ids)
             total_amt = 0

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # 1. THE DATABASE LAYER
+  db:
+    image: postgres:15-alpine  # Uses a lightweight, official PostgreSQL image
+    container_name: vanad-postgres  # Gives the container a recognizable name
+    environment:
+      POSTGRES_USER: ibrahim  # Sets the default database user
+      POSTGRES_PASSWORD: super_secret_password_123  # Sets the database password
+      POSTGRES_DB: ecommerce_analytics  # Automatically creates this database on startup
+    ports:
+      - "5432:5432"  # Maps port 5432 on your host machine to port 5432 inside the container
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # Ensures your data survives even if the container is destroyed
+
+  # 2. THE BACKEND API LAYER
+  api:
+    build: .  # Tells Docker to look in the current (root) folder for a Dockerfile to build
+    container_name: vanad-api
+    ports:
+      - "8000:8000"  # Exposes the FastAPI port so your React frontend can reach it
+    depends_on:
+      - db  # Tells Docker NOT to start the API until the database is running
+
+  # 3. THE FRONTEND UI LAYER
+  frontend:
+    build: ./frontend  # Tells Docker to look inside the /frontend folder for its Dockerfile
+    container_name: vanad-frontend
+    ports:
+      - "80:80"  # Maps standard HTTP port 80 to your Nginx web server
+    depends_on:
+      - api  # Ensures the API is up before the frontend launches
+
+# Defines the persistent storage volume referenced by the database
+volumes:
+  pgdata:

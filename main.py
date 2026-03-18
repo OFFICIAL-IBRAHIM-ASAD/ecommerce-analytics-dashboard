@@ -5,9 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="VANAD Analytics API")
 
+# Add this block to allow your React app to fetch data
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Vite's default port
+    allow_origins=[
+        "http://localhost:5173",  # For local Vite testing
+        "http://localhost",       # For Docker Nginx frontend
+        "http://127.0.0.1"        # Alternative local mapping
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,7 +23,7 @@ DB_CONFIG = {
     "dbname": "ecommerce_analytics",
     "user": "ibrahim",
     "password": "super_secret_password_123", 
-    "host": "localhost",
+    "host": "db",
     "port": "5432"
 }
 

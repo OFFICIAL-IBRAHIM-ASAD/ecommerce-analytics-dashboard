@@ -51,7 +51,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl font-semibold text-gray-600 animate-pulse">Loading VANAD Analytics...</div>
+        <div className="text-xl font-semibold text-gray-600 animate-pulse">Loading Analytics Dashboard...</div>
       </div>
     )
   }
