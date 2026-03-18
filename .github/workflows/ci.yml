@@ -1,0 +1,36 @@
+name: VANAD Build Verification
+
+# This section tells GitHub WHEN to run this pipeline
+on:
+  push:
+    branches: [ "main" ]  # Runs every time you push to the main branch
+  pull_request:
+    branches: [ "main" ]  # Runs if someone tries to merge code into your main branch
+
+jobs:
+  # We are defining a single job called "verify-architecture"
+  verify-architecture:
+    runs-on: ubuntu-latest  # Tells GitHub to rent a temporary Linux server for this job
+
+    steps:
+    # Step 1: Download your code onto the temporary server
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # Step 2: Verify the Frontend compiles properly
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install Frontend Dependencies
+      working-directory: ./frontend
+      run: npm install --legacy-peer-deps  # Uses our override flag to prevent Vite version clashes
+        
+    - name: Build React App
+      working-directory: ./frontend
+      run: npm run build  # Ensures your Vite app can successfully compile into production static files
+
+    # Step 3: Verify the Docker Architecture builds successfully
+    - name: Test Docker Compose Build
+      run: docker compose build  # Reads your docker-compose.yml and attempts to build the API and Frontend images
