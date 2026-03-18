@@ -6,29 +6,45 @@ import random
 DB_CONFIG = {
     "dbname": "ecommerce_analytics",
     "user": "ibrahim",
-    "password": "super_secret_password_123", # <--- UPDATE THIS
+    "password": "super_secret_password_123",
     "host": "localhost",
     "port": "5432"
 }
 
 fake = Faker()
 
+# Predefined realistic products
+REALISTIC_PRODUCTS = {
+    'Electronics': ['Mapple Phone', 'Mechanical Keyboard', '4K Monitor', 'Gaming Mouse', 'Smartwatch'],
+    'Clothing': ['Cotton T-Shirt', 'Denim Jeans', 'Leather Jacket', 'Running Shoes', 'Winter Beanie'],
+    'Home & Kitchen': ['Coffee Maker', 'Blender', 'Non-stick Pan Set', 'Smart Thermostat', 'Vacuum Cleaner'],
+    'Books': ['Introduction to Algorithms (CLRS)', 'Theory of Automata', 'The Pragmatic Programmer', 'Data Analytics for Beginners', '1984'],
+    'Sports': ['Yoga Mat', 'Dumbbell Set', 'Tennis Racket', 'Basketball', 'Resistance Bands']
+}
+
 def populate_data():
-    conn = None  # <-- Fixes the UnboundLocalError
+    conn = None
     cur = None
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
         print("Connected to PostgreSQL successfully!")
 
+        # Wipe out the old random word data
+        cur.execute("TRUNCATE TABLE products CASCADE;")
+        print("Cleared old database records...")
+
         # 1. Generate Products
-        categories = ['Electronics', 'Clothing', 'Home & Kitchen', 'Books', 'Sports']
         product_ids = []
+        categories = list(REALISTIC_PRODUCTS.keys())
+        
         for _ in range(20):
+            category = random.choice(categories)
+            product_name = random.choice(REALISTIC_PRODUCTS[category])
+            
             cur.execute(
                 "INSERT INTO products (name, category, price, stock_quantity) VALUES (%s, %s, %s, %s) RETURNING product_id",
-                (fake.ecommerce_name() if hasattr(fake, 'ecommerce_name') else fake.word().capitalize(), 
-                 random.choice(categories), round(random.uniform(10, 1000), 2), random.randint(10, 100))
+                (product_name, category, round(random.uniform(10, 1000), 2), random.randint(10, 100))
             )
             product_ids.append(cur.fetchone()[0])
 
@@ -51,11 +67,9 @@ def populate_data():
             )
             order_id = cur.fetchone()[0]
 
-            # Add 1-3 items per order
             for _ in range(random.randint(1, 3)):
                 prod_id = random.choice(product_ids)
                 qty = random.randint(1, 2)
-                # Get price of the product
                 cur.execute("SELECT price FROM products WHERE product_id = %s", (prod_id,))
                 price = cur.fetchone()[0]
                 
@@ -65,11 +79,10 @@ def populate_data():
                 )
                 total_amt += (price * qty)
 
-            # Update the order total
             cur.execute("UPDATE orders SET total_amount = %s WHERE order_id = %s", (total_amt, order_id))
 
         conn.commit()
-        print(f"Success! Inserted 20 products, 50 customers, and 100 orders.")
+        print(f"Success! Inserted 20 realistic products, 50 customers, and 100 orders.")
 
     except Exception as e:
         print(f"Error: {e}")
