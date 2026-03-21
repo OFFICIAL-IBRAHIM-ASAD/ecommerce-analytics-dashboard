@@ -26,7 +26,7 @@ DB_CONFIG = {
     "dbname": "ecommerce_analytics",
     "user": "ibrahim",
     "password": "super_secret_password_123", 
-    "host": "db",
+    "host": "vanad-postgres",
     "port": "5432"
 }
 
