@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi.middleware.cors import CORSMiddleware
+import joblib
+import os
+from fastapi import HTTPException
 
 app = FastAPI(title="VANAD Analytics API")
 
@@ -133,3 +136,44 @@ def get_recent_orders(limit: int = 10):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/predict")
+def get_revenue_prediction():
+    """Loads the trained scikit-learn model and predicts the next 7 steps of revenue."""
+    model_path = os.path.join('artifacts', 'revenue_model.joblib')
+    
+    # 1. Check if the AI model actually exists
+    if not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="Predictive model not found. Please train it first.")
+        
+    try:
+        # 2. Load the brain
+        model = joblib.load(model_path)
+        
+        # 3. Connect to the database to find out what the latest order_id is
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(MAX(order_id), 0) FROM orders;")
+        max_order_id = cur.fetchone()[0]
+        
+        # 4. Create an array of the NEXT 7 order IDs to feed to the model
+        future_orders = [[max_order_id + i] for i in range(1, 8)]
+        
+        # 5. Ask the model to predict the revenue for those future steps
+        predictions = model.predict(future_orders)
+        
+        # 6. Format the output neatly for the React frontend
+        forecast = []
+        for i, pred in enumerate(predictions):
+            forecast.append({
+                "future_step": i + 1,
+                "projected_revenue": round(max(0, pred), 2) # max(0, pred) prevents impossible negative revenue
+            })
+            
+        return forecast
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'cur' in locals() and cur: cur.close()
+        if 'conn' in locals() and conn: conn.close()
