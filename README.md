@@ -60,3 +60,5 @@ python3 ingest_data.py
 python3 train_model.py
 4. View the Dashboard
 Open your browser and navigate to http://localhost
+
+```
