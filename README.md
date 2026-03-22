@@ -19,6 +19,7 @@ graph TD
     DataScript[Data Ingestion Script] -->|Seed Data| DB
     TrainScript[ML Training Script] -->|Extract History| DB
     TrainScript -->|Generate Artifact| ML
+```
 Challenges & Solutions
 Building this architecture entirely within Docker containers presented several networking and build challenges:
 
@@ -61,4 +62,3 @@ python3 train_model.py
 4. View the Dashboard
 Open your browser and navigate to http://localhost
 
-```
